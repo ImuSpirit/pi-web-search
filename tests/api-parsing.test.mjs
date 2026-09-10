@@ -906,6 +906,62 @@ test('Anthropic stream does not replace existing auth headers with env API key f
   }
 });
 
+test('Anthropic stream sends the Claude Code system prompt for OAuth credentials', async () => {
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async (_url, init) => {
+    const body = JSON.parse(init.body);
+    assert.equal(init.headers.Authorization, 'Bearer sk-ant-oat01-test');
+    assert.deepEqual(body.system, [
+      { type: 'text', text: "You are Claude Code, Anthropic's official CLI for Claude." },
+    ]);
+    return makeResponse([
+      { data: { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'OAuth accepted' } } },
+    ]);
+  };
+
+  try {
+    const result = await callApiStream(mockCtx('sk-ant-oat01-test'), {
+      id: 'claude-test',
+      provider: 'anthropic',
+      api: 'anthropic-messages',
+      baseUrl: 'https://example.test/anthropic',
+      maxTokens: 4096,
+      headers: {},
+    }, { contents: [{ parts: [{ text: 'Search with OAuth auth' }] }] });
+
+    assert.equal(result.text, 'OAuth accepted');
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
+test('Anthropic stream omits the system prompt for API key credentials', async () => {
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async (_url, init) => {
+    const body = JSON.parse(init.body);
+    assert.equal(init.headers['x-api-key'], 'sk-ant-api03-test');
+    assert.equal(body.system, undefined);
+    return makeResponse([
+      { data: { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'API key accepted' } } },
+    ]);
+  };
+
+  try {
+    const result = await callApiStream(mockCtx('sk-ant-api03-test'), {
+      id: 'claude-test',
+      provider: 'anthropic',
+      api: 'anthropic-messages',
+      baseUrl: 'https://example.test/anthropic',
+      maxTokens: 4096,
+      headers: {},
+    }, { contents: [{ parts: [{ text: 'Search with API key auth' }] }] });
+
+    assert.equal(result.text, 'API key accepted');
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
 test('Google stream falls back to env API key when resolved auth has no credential', async () => {
   const previousFetch = globalThis.fetch;
   const previousGeminiApiKey = process.env.GEMINI_API_KEY;
