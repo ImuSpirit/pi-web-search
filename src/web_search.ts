@@ -16,7 +16,7 @@ export type WebSearchInput = Static<typeof WebSearchSchema>;
 export async function webSearch(
     id: string, 
     params: WebSearchInput, 
-    signal: AbortSignal | undefined,
+    signal: AbortSignal,
     onUpdate: AgentToolUpdateCallback | undefined, 
     ctx: ExtensionContext,
     thinkingLevel?: ModelThinkingLevel

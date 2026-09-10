@@ -64,7 +64,9 @@ test('registered tool reads the current agent thinking level on every invocation
   let level = 'medium';
   let tool;
   const efforts = [];
+  const signals = [];
   t.mock.method(globalThis, 'fetch', async (_url, init) => {
+    signals.push(init.signal);
     efforts.push(JSON.parse(init.body).reasoning?.effort);
     return response();
   });
@@ -76,9 +78,11 @@ test('registered tool reads the current agent thinking level on every invocation
     });
     for (const next of ['medium', 'high', 'off']) {
       level = next;
+      const signal = new AbortController().signal;
       const result = await tool.execute('test', { query: 'Search documentation' },
-        new AbortController().signal, undefined, ctx);
+        signal, undefined, ctx);
       assert.equal(result.details.error, undefined);
+      assert.equal(signals.at(-1), signal);
     }
     assert.deepEqual(efforts, ['medium', 'high', undefined]);
 
@@ -106,6 +110,8 @@ test('registered tool reads the current agent thinking level on every invocation
     assert.equal(result.details.error, undefined);
     assert.equal(result.details.model, 'dedicated-search');
     assert.equal(efforts.at(-1), 'medium');
+    assert.ok(signals.at(-1) instanceof AbortSignal);
+    assert.equal(signals.at(-1).aborted, false);
   } finally {
     if (oldConfig === undefined) delete process.env.PI_WEB_SEARCH_CONFIG;
     else process.env.PI_WEB_SEARCH_CONFIG = oldConfig;

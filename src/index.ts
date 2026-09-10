@@ -65,7 +65,7 @@ export default function (pi: ExtensionAPI) {
         label: "Web Search",
         description: "Search the web using the current supported provider (Google Gemini, xAI Grok, OpenAI, or Anthropic). Optionally include URLs to analyze alongside search results.",
         parameters: WebSearchSchema,
-        execute: (id, params, signal, onUpdate, ctx): Promise<AgentToolResult<any>> =>
+        execute: (id, params, signal = new AbortController().signal, onUpdate, ctx): Promise<AgentToolResult<any>> =>
             webSearch(id, params, signal, onUpdate, ctx, pi.getThinkingLevel()),
         renderCall(args, theme) {
             const query = args.query || "…";
