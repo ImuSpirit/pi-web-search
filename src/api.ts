@@ -9,6 +9,8 @@ type ProviderKind = "google" | "openai" | "xai" | "anthropic" | "unsupported";
 
 type GoogleRequestBuilder = (model: Model<Api>, body: any) => { url: string; headers: Record<string, string>; body: any };
 
+const CLAUDE_CODE_SYSTEM_PROMPT = "You are Claude Code, Anthropic's official CLI for Claude.";
+
 type ProviderConfig = {
     kind: ProviderKind;
     searchTool?: string;
@@ -915,6 +917,9 @@ async function callAnthropicStream(
     const requestBody = {
         model: model.id,
         max_tokens: maxTokens,
+        // Anthropic rejects oauth-2025-04-20 requests that omit the Claude Code
+        // system prompt, reporting it as an opaque 429 rate_limit_error.
+        ...(isOAuth ? { system: [{ type: "text", text: CLAUDE_CODE_SYSTEM_PROMPT }] } : {}),
         messages: [{ role: "user", content: prompt }],
         tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 10 }],
         stream: true,
