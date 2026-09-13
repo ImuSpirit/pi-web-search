@@ -1,4 +1,4 @@
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { AgentToolResult, ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { Api, Model } from "@earendil-works/pi-ai";
 import { Text } from "@earendil-works/pi-tui";
 import { getProviderKind } from "./api.ts";
@@ -65,7 +65,8 @@ export default function (pi: ExtensionAPI) {
         label: "Web Search",
         description: "Search the web using the current supported provider (Google Gemini, xAI Grok, OpenAI, or Anthropic). Optionally include URLs to analyze alongside search results.",
         parameters: WebSearchSchema,
-        execute: webSearch,
+        execute: (id, params, signal = new AbortController().signal, onUpdate, ctx): Promise<AgentToolResult<any>> =>
+            webSearch(id, params, signal, onUpdate, ctx, pi.getThinkingLevel()),
         renderCall(args, theme) {
             const query = args.query || "…";
             const urlCount = args.urls?.length ?? 0;

@@ -1,4 +1,5 @@
 import type { ExtensionContext, AgentToolUpdateCallback } from "@earendil-works/pi-coding-agent";
+import type { ModelThinkingLevel } from "@earendil-works/pi-ai";
 import { Type, type Static } from "typebox";
 import { callApiStream, getConfig, applyCitations } from "./api.ts";
 import { getWebSearchModel, missingWebSearchConfigResult, errorResult, formatResult } from "./utils.ts";
@@ -15,9 +16,10 @@ export type WebSearchInput = Static<typeof WebSearchSchema>;
 export async function webSearch(
     id: string, 
     params: WebSearchInput, 
-    signal: AbortSignal, 
+    signal: AbortSignal,
     onUpdate: AgentToolUpdateCallback | undefined, 
-    ctx: ExtensionContext
+    ctx: ExtensionContext,
+    thinkingLevel?: ModelThinkingLevel
 ) {
     const model = await getWebSearchModel(ctx);
     if (!model) return missingWebSearchConfigResult(ctx);
@@ -54,7 +56,7 @@ export async function webSearch(
         const result = await callApiStream(ctx, model, {
             contents: [{ role: "user", parts: [{ text: prompt }] }],
             ...(tools ? { tools } : {})
-        }, onUpdate, signal);
+        }, onUpdate, signal, thinkingLevel);
 
         const cited = applyCitations(result.text, result.groundingMetadata);
         const text = cited.text;
