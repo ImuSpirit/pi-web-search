@@ -1,22 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { writeFile } from 'node:fs/promises';
 import registerExtension from '../src/index.ts';
 import { callApiStream } from '../src/api.ts';
+import { createMockCtx as mockCtx, withWebSearchConfig } from './helpers.mjs';
 
 const model = {
   id: 'gpt-6-astra', provider: 'openai', api: 'openai-responses',
   baseUrl: 'https://example.com/v1', reasoning: true,
   thinkingLevelMap: { off: null, minimal: null, xhigh: 'xhigh' },
 };
-const ctx = {
-  model,
-  modelRegistry: {
-    async getApiKeyAndHeaders() { return { ok: true, apiKey: 'test-key' }; },
-  },
-};
+const ctx = mockCtx('test-key', model);
 const prompt = { contents: [{ parts: [{ text: 'Search documentation' }] }] };
 function response() {
   return new Response('data: {"type":"response.completed","response":{"output":[]}}\n\n', {
@@ -58,9 +52,6 @@ test('xAI does not receive OpenAI effort settings', async (t) => {
 });
 
 test('registered tool reads the current agent thinking level on every invocation', async (t) => {
-  const dir = await mkdtemp(join(tmpdir(), 'pi-web-search-reasoning-'));
-  const oldConfig = process.env.PI_WEB_SEARCH_CONFIG;
-  process.env.PI_WEB_SEARCH_CONFIG = join(dir, 'missing.json');
   let level = 'medium';
   let tool;
   const efforts = [];
@@ -70,7 +61,9 @@ test('registered tool reads the current agent thinking level on every invocation
     efforts.push(JSON.parse(init.body).reasoning?.effort);
     return response();
   });
-  try {
+
+  // No config file: web_search follows the current conversation model.
+  await withWebSearchConfig(null, async (configPath) => {
     registerExtension({
       registerTool(value) { if (value.name === 'web_search') tool = value; },
       getThinkingLevel() { return level; },
@@ -87,23 +80,19 @@ test('registered tool reads the current agent thinking level on every invocation
     assert.deepEqual(efforts, ['medium', 'high', undefined]);
 
     // A dedicated model must use its own capabilities, not the caller's map.
-    await writeFile(process.env.PI_WEB_SEARCH_CONFIG,
+    await writeFile(configPath,
       JSON.stringify({ provider: 'github-copilot', model: 'dedicated-search' }));
     const dedicated = {
       ...model, provider: 'github-copilot', id: 'dedicated-search',
       thinkingLevelMap: { high: 'medium' },
     };
-    const dedicatedCtx = {
-      ...ctx,
-      modelRegistry: {
-        ...ctx.modelRegistry,
-        find(provider, id) {
-          assert.equal(provider, dedicated.provider);
-          assert.equal(id, dedicated.id);
-          return dedicated;
-        },
+    const dedicatedCtx = mockCtx('test-key', model, undefined, undefined, {
+      find(provider, id) {
+        assert.equal(provider, dedicated.provider);
+        assert.equal(id, dedicated.id);
+        return dedicated;
       },
-    };
+    });
     level = 'high';
     const result = await tool.execute('dedicated', { query: 'Search documentation' },
       undefined, undefined, dedicatedCtx);
@@ -112,9 +101,5 @@ test('registered tool reads the current agent thinking level on every invocation
     assert.equal(efforts.at(-1), 'medium');
     assert.ok(signals.at(-1) instanceof AbortSignal);
     assert.equal(signals.at(-1).aborted, false);
-  } finally {
-    if (oldConfig === undefined) delete process.env.PI_WEB_SEARCH_CONFIG;
-    else process.env.PI_WEB_SEARCH_CONFIG = oldConfig;
-    await rm(dir, { recursive: true, force: true });
-  }
+  });
 });
