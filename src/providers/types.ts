@@ -1,4 +1,4 @@
-export type ProviderKind = "google" | "openai" | "xai" | "anthropic" | "unsupported";
+export type ProviderKind = "google" | "openai" | "xai" | "anthropic" | "deepseek" | "unsupported";
 
 export interface Source {
     title: string;
@@ -39,4 +39,9 @@ export interface StreamResult {
     citations?: SearchResultDetail[];
     groundingMetadata?: any;
     urlContextMetadata?: any;
+}
+
+export interface SearchDomainFilters {
+    allowed_domains?: string[];
+    blocked_domains?: string[];
 }

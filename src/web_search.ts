@@ -6,7 +6,13 @@ import { formatWebSearchResult } from "./format.ts";
 import { getWebSearchModel, missingWebSearchConfigResult, errorResult } from "./utils.ts";
 
 export const WebSearchSchema = Type.Object({
-    query: Type.String({ description: "The search query or question to answer" }),
+    query: Type.String({ minLength: 1, description: "The search query or question to answer" }),
+    allowed_domains: Type.Optional(Type.Array(Type.String(), {
+        description: "Only include these domains (DeepSeek/Anthropic only). Cannot combine with blocked_domains.",
+    })),
+    blocked_domains: Type.Optional(Type.Array(Type.String(), {
+        description: "Exclude these domains (DeepSeek/Anthropic only). Cannot combine with allowed_domains.",
+    })),
     urls: Type.Optional(Type.Array(Type.String(), { 
         description: "Additional URLs to analyze along with search (up to 20)",
         maxItems: 20
@@ -40,6 +46,14 @@ export async function webSearch(
 
     try {
         const config = getConfig(model);
+        if (!params.query.trim()) throw new Error("query is required");
+        const hasFilters = params.allowed_domains?.length || params.blocked_domains?.length;
+        if (params.allowed_domains?.length && params.blocked_domains?.length) {
+            throw new Error("allowed_domains and blocked_domains cannot be combined");
+        }
+        if (hasFilters && config.kind !== "deepseek" && config.kind !== "anthropic") {
+            throw new Error("Domain filters are supported only by DeepSeek and Anthropic");
+        }
         
         // Build prompt: include URLs if provided
         const prompt = hasUrls
@@ -55,6 +69,10 @@ export async function webSearch(
             : undefined;
 
         const result = await callApiStream(ctx, model, {
+            ...(hasFilters ? { searchDomainFilters: {
+                allowed_domains: params.allowed_domains,
+                blocked_domains: params.blocked_domains,
+            } } : {}),
             contents: [{ role: "user", parts: [{ text: prompt }] }],
             ...(tools ? { tools } : {})
         }, onUpdate, signal, thinkingLevel);

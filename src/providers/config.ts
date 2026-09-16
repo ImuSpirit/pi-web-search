@@ -27,6 +27,7 @@ const GOOGLE_PROVIDERS: Record<string, ProviderConfig> = {
 };
 
 export function getProviderKind(model: Model<Api>): ProviderKind {
+    if (model.provider === "deepseek") return "deepseek";
     if (GOOGLE_PROVIDERS[model.provider] || GOOGLE_PROVIDERS[model.api]) return "google";
     if (model.provider === "xai" && model.api === "openai-responses") return "xai";
     if (
