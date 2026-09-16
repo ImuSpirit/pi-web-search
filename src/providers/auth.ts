@@ -35,3 +35,28 @@ function hasAuthHeader(headers?: Record<string, string>): boolean {
         return normalized === "authorization" || normalized === "x-api-key" || normalized === "x-goog-api-key";
     });
 }
+
+const OPENCODE_HOST = "opencode.ai";
+
+function isOpenCodeModel(model: Model<Api>): boolean {
+    if (model.provider === "opencode" || model.provider === "opencode-go") return true;
+    try {
+        return new URL(model.baseUrl).hostname === OPENCODE_HOST;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * OpenCode Zen/Go require a stable per-conversation session id on every
+ * request. pi adds these headers to its own provider calls (see pi's
+ * provider-attribution), but this extension talks to the API with fetch()
+ * directly, so it has to mirror that or the gateway rejects the request with
+ * MissingSessionID.
+ */
+export function getProviderSessionHeaders(model: Model<Api>, ctx: ExtensionContext): Record<string, string> | undefined {
+    if (!isOpenCodeModel(model)) return undefined;
+    const sessionId = ctx.sessionManager?.getSessionId?.();
+    if (!sessionId) return undefined;
+    return { "x-opencode-session": sessionId, "x-opencode-client": "pi" };
+}

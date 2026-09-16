@@ -1,6 +1,6 @@
 import type { ExtensionContext, AgentToolUpdateCallback } from "@earendil-works/pi-coding-agent";
 import type { Api, Model } from "@earendil-works/pi-ai";
-import { getAuth } from "./auth.ts";
+import { getAuth, getProviderSessionHeaders } from "./auth.ts";
 import { readSseEvents } from "./sse.ts";
 import {
     applyTextCitations,
@@ -38,6 +38,7 @@ export async function callAnthropicStream(
         "Content-Type": "application/json",
         "Accept": "text/event-stream",
         "anthropic-version": "2023-06-01",
+        ...(getProviderSessionHeaders(model, ctx) || {}),
         ...(model.headers || {}),
         ...(auth.headers || {}),
     };

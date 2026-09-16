@@ -1,6 +1,6 @@
 # pi-web-search
 
-Provider-native web search for [pi](https://pi.dev) with Gemini + URL Context, xAI Grok, OpenAI Responses variants, and Anthropic.
+Provider-native web search for [pi](https://pi.dev) with Gemini + URL Context, xAI Grok, OpenAI Responses variants, Anthropic, and OpenCode Zen/Go.
 
 ## Tools
 
@@ -17,8 +17,11 @@ Search the web using your currently selected model. Automatically picks the righ
 | OpenAI Codex | Codex Responses API web search (`openai-codex-responses`) |
 | GitHub Copilot | OpenAI Responses API web search via Copilot credentials |
 | Anthropic | Messages API web search |
+| OpenCode Zen / Go | Responses API web search (models that use the `openai-responses` API) |
 
 GitHub Copilot OpenAI Responses models are supported, including Business and Enterprise seats whose API endpoint is resolved from their authenticated Copilot credentials. This includes models such as `gpt-5.6-sol`.
+
+OpenCode Zen and OpenCode Go Responses models (for example `opencode-go/gpt-5.6-luna` or `opencode-go/grok-4.6`) use the same Responses web search. OpenCode routes traffic per conversation, so `web_search` sends the `x-opencode-session` and `x-opencode-client` headers pi uses, keyed to the active session. Only models exposed through that Responses API are supported: OpenCode `chat/completions` models have no provider-native search tool, and the gateway's Anthropic Messages models are unverified.
 
 Supports passing up to 20 additional URLs to analyze alongside the query. Successful `web_search` results are collapsed by default in pi; expand the tool call to inspect the full answer and source details.
 

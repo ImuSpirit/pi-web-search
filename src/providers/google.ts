@@ -2,7 +2,7 @@ import type { ExtensionContext, AgentToolUpdateCallback } from "@earendil-works/
 import type { Api, Model } from "@earendil-works/pi-ai";
 import { TextEncoder, TextDecoder } from "util";
 import { getConfig } from "./config.ts";
-import { getAuth } from "./auth.ts";
+import { getAuth, getProviderSessionHeaders } from "./auth.ts";
 import { readSseEvents } from "./sse.ts";
 import { deriveSources, pushUniqueSearchResult, sanitizeSearchResults, titleFromUrl } from "./results.ts";
 import type { SearchResultDetail, Source, StreamResult } from "./types.ts";
@@ -106,6 +106,7 @@ export async function callGoogleStream(
     const req = config.buildRequest(model, body);
 
     // Handle auth
+    Object.assign(req.headers, getProviderSessionHeaders(model, ctx) || {});
     if (auth.headers) {
         Object.assign(req.headers, auth.headers);
     }
