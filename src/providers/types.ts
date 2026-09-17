@@ -40,8 +40,3 @@ export interface StreamResult {
     groundingMetadata?: any;
     urlContextMetadata?: any;
 }
-
-export interface SearchDomainFilters {
-    allowed_domains?: string[];
-    blocked_domains?: string[];
-}

@@ -82,9 +82,7 @@ uses the model selected by this project's configuration; it does not read
 `DEEPSEEK_SEARCH_MODEL` or silently switch models. Do not load both extensions,
 since they both register `web_search`.
 
-`web_search` also accepts `allowed_domains` or `blocked_domains` for DeepSeek
-and Anthropic. These filters cannot be combined. DeepSeek requests have a
-60-second timeout and support cancellation. Additional `urls` are included in
+DeepSeek requests have a 60-second timeout and support cancellation. Additional `urls` are included in
 the prompt; Gemini's verified URL Context retrieval remains Gemini-only.
 
 This integration was informed by [pi-deepseek-search](https://github.com/bxff/pi-deepseek-search).

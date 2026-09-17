@@ -32,7 +32,7 @@ export async function callApiStream(
         return callOpenAIStream(ctx, model, prompt, onUpdate, signal, thinkingLevel);
     }
     if (kind === "anthropic" || kind === "deepseek") {
-        return callAnthropicStream(ctx, model, prompt, onUpdate, signal, body.searchDomainFilters);
+        return callAnthropicStream(ctx, model, prompt, onUpdate, signal);
     }
 
     throw new Error(`Unsupported provider for web search: ${model.provider} (${model.api})`);

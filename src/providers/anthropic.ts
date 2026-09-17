@@ -13,7 +13,7 @@ import {
     sanitizeSearchResults,
     titleFromUrl,
 } from "./results.ts";
-import type { NativeSearchCallDetail, SearchResultDetail, SearchDomainFilters, StreamResult } from "./types.ts";
+import type { NativeSearchCallDetail, SearchResultDetail, StreamResult } from "./types.ts";
 
 const CLAUDE_CODE_SYSTEM_PROMPT = "You are Claude Code, Anthropic's official CLI for Claude.";
 
@@ -35,15 +35,11 @@ export async function callAnthropicStream(
     model: Model<Api>,
     prompt: string,
     onUpdate?: AgentToolUpdateCallback,
-    signal?: AbortSignal,
-    filters: SearchDomainFilters = {}
+    signal?: AbortSignal
 ): Promise<StreamResult> {
     const kind = getProviderKind(model) === "deepseek" ? "deepseek" : "anthropic";
     const isDeepSeek = kind === "deepseek";
     const providerName = isDeepSeek ? "DeepSeek" : "Anthropic";
-    if (filters.allowed_domains?.length && filters.blocked_domains?.length) {
-        throw new Error("allowed_domains and blocked_domains cannot be combined");
-    }
     if (isDeepSeek) {
         const timeout = AbortSignal.timeout(60_000);
         signal = signal ? AbortSignal.any([signal, timeout]) : timeout;
@@ -94,8 +90,6 @@ export async function callAnthropicStream(
             type: isDeepSeek ? "web_search_20260209" : "web_search_20250305",
             name: "web_search",
             max_uses: isDeepSeek ? 8 : 10,
-            ...(filters.allowed_domains?.length ? { allowed_domains: filters.allowed_domains } : {}),
-            ...(filters.blocked_domains?.length ? { blocked_domains: filters.blocked_domains } : {}),
         }],
         stream: true,
     };

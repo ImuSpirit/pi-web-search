@@ -42,13 +42,13 @@ test('DeepSeek search sends native tool and exposes streaming results and citati
     const request = JSON.parse(init.body);
     assert.equal(request.model, model.id);
     assert.equal(request.stream, true);
-    assert.deepEqual(request.tools, [{ type: 'web_search_20260209', name: 'web_search', max_uses: 8, allowed_domains: ['api-docs.deepseek.com'] }]);
+    assert.deepEqual(request.tools, [{ type: 'web_search_20260209', name: 'web_search', max_uses: 8 }]);
     assert.equal(request.messages[0].content, 'Search DeepSeek docs');
     assert.equal(init.signal.aborted, false);
     return answer();
   });
   const result = await callApiStream(createMockCtx('test-key'), model,
-    { ...body, searchDomainFilters: { allowed_domains: ['api-docs.deepseek.com'] } },
+    body,
     (update) => updates.push(update), controller.signal);
   assert.equal(result.providerKind, 'deepseek');
   assert.equal(result.nativeSearchUsed, true);
@@ -68,13 +68,12 @@ test('explicit DeepSeek model works with another conversation model and formats 
   t.mock.method(globalThis, 'fetch', async (_url, init) => {
     const request = JSON.parse(init.body);
     assert.equal(request.model, model.id);
-    assert.deepEqual(request.tools[0].blocked_domains, ['example.com']);
     assert.match(request.messages[0].content, /https:\/\/deepseek.com/);
     return answer();
   });
   await withWebSearchConfig({ provider: 'deepseek', model: model.id }, async () => {
     assert.equal(await getWebSearchModel(ctx), model);
-    const result = await webSearch('test', { query: 'Search docs', urls: ['https://deepseek.com'], blocked_domains: ['example.com'] }, new AbortController().signal, undefined, ctx);
+    const result = await webSearch('test', { query: 'Search docs', urls: ['https://deepseek.com'] }, new AbortController().signal, undefined, ctx);
     assert.equal(result.details.providerKind, 'deepseek');
     assert.match(result.content[0].text, /https:\/\/api-docs.deepseek.com/);
   });
@@ -129,18 +128,4 @@ test('DeepSeek request cancellation reaches fetch', async (t) => {
     init.signal.throwIfAborted();
   });
   await assert.rejects(callApiStream(createMockCtx(), model, body, undefined, controller.signal), { name: 'AbortError' });
-});
-
-test('web_search rejects conflicting or unsupported domain filters and blank queries', async (t) => {
-  const fetch = t.mock.method(globalThis, 'fetch', async () => assert.fail('must not fetch'));
-  for (const [selected, params, pattern] of [
-    [model, { query: 'test', allowed_domains: ['a.com'], blocked_domains: ['b.com'] }, /cannot be combined/],
-    [{ ...model, provider: 'openai', api: 'openai-responses' }, { query: 'test', allowed_domains: ['a.com'] }, /only by DeepSeek and Anthropic/],
-    [model, { query: '   ' }, /query is required/],
-  ]) {
-    const result = await webSearch('test', params, new AbortController().signal, undefined, createMockCtx('key', selected));
-    assert.equal(result.details.error, true);
-    assert.match(result.content[0].text, pattern);
-  }
-  assert.equal(fetch.mock.callCount(), 0);
 });
