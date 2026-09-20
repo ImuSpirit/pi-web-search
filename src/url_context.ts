@@ -1,6 +1,7 @@
 import type { ExtensionContext, AgentToolUpdateCallback } from "@earendil-works/pi-coding-agent";
 import { Type, type Static } from "typebox";
 import { callApiStream, getConfig } from "./api.ts";
+import { callOllamaUrlContext } from "./providers/ollama.ts";
 import { formatResult, formatUrlContextResult } from "./format.ts";
 import { getModel, missingConfigResult, errorResult } from "./utils.ts";
 
@@ -31,6 +32,10 @@ export async function urlContext(
 
     try {
         const config = getConfig(model);
+        if (config.kind === "ollama") {
+            const result = await callOllamaUrlContext(ctx, model, params.query, params.urls, signal);
+            return formatUrlContextResult(result, { modelId: model.id });
+        }
         if (config.kind !== "google") {
             return formatResult(
                 `url_context currently requires a Google Gemini-compatible model. Current model: ${model.id} (${model.provider}/${model.api}).\n\nUse web_search for cross-provider web search, or switch to Gemini for provider-native URL context retrieval.`,

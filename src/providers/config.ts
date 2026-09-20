@@ -74,9 +74,19 @@ const GOOGLE_PROVIDERS: Record<string, ProviderConfig> = {
     }
 };
 
+function isOllamaModel(model: Model<Api>): boolean {
+    if (model.provider === "ollama-cloud") return true;
+    try {
+        return new URL(model.baseUrl).hostname === "ollama.com";
+    } catch {
+        return false;
+    }
+}
+
 export function getProviderKind(model: Model<Api>): ProviderKind {
     if (model.provider === "antigravity" || model.api === "antigravity") return "google";
     if (GOOGLE_PROVIDERS[model.provider] || GOOGLE_PROVIDERS[model.api]) return "google";
+    if (isOllamaModel(model)) return "ollama";
     if (model.provider === "xai" && model.api === "openai-responses") return "xai";
     if (
         model.api === "openai-responses"
