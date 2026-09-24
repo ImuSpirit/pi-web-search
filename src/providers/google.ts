@@ -103,14 +103,14 @@ export async function callGoogleStream(
         throw new Error(auth.error || "Failed to get API key and headers");
     }
 
-    const req = config.buildRequest(model, body);
+    const req = config.buildRequest(model, body, auth);
 
     // Handle auth
     Object.assign(req.headers, getProviderSessionHeaders(model, ctx) || {});
     if (auth.headers) {
         Object.assign(req.headers, auth.headers);
     }
-    if (auth.apiKey) {
+    if (auth.apiKey && model.provider !== "antigravity" && model.api !== "antigravity") {
         req.headers["x-goog-api-key"] = auth.apiKey;
     }
 

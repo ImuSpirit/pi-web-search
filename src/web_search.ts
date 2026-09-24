@@ -40,9 +40,11 @@ export async function webSearch(
 
     try {
         const config = getConfig(model);
-        
-        // Build prompt: include URLs if provided
-        const prompt = hasUrls
+
+        // Build prompt: include URLs if provided. Ollama receives the URL list as
+        // a separate argument (its search is a REST endpoint, not a model tool),
+        // so the prompt stays a clean query.
+        const prompt = hasUrls && config.kind !== "ollama"
             ? `${params.query}\n\nAlso analyze these URLs:\n${params.urls!.join("\n")}`
             : params.query;
 
@@ -57,7 +59,7 @@ export async function webSearch(
         const result = await callApiStream(ctx, model, {
             contents: [{ role: "user", parts: [{ text: prompt }] }],
             ...(tools ? { tools } : {})
-        }, onUpdate, signal, thinkingLevel);
+        }, onUpdate, signal, thinkingLevel, params.urls);
 
         return formatWebSearchResult(result, { modelId: model.id });
     } catch (e: any) {
