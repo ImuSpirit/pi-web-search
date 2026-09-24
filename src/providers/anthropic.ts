@@ -40,10 +40,6 @@ export async function callAnthropicStream(
     const kind = getProviderKind(model) === "deepseek" ? "deepseek" : "anthropic";
     const isDeepSeek = kind === "deepseek";
     const providerName = isDeepSeek ? "DeepSeek" : "Anthropic";
-    if (isDeepSeek) {
-        const timeout = AbortSignal.timeout(60_000);
-        signal = signal ? AbortSignal.any([signal, timeout]) : timeout;
-    }
     const auth = await getAuth(ctx, model);
     if (!auth.ok) {
         throw new Error(auth.error || "Failed to get API key and headers");
@@ -83,13 +79,14 @@ export async function callAnthropicStream(
         max_tokens: maxTokens,
         // Anthropic rejects oauth-2025-04-20 requests that omit the Claude Code
         // system prompt, reporting it as an opaque 429 rate_limit_error.
-        ...(isDeepSeek ? { system: "You are an assistant for performing a web search tool use. Do not output tool call syntax." } : {}),
         ...(isOAuth ? { system: [{ type: "text", text: CLAUDE_CODE_SYSTEM_PROMPT }] } : {}),
         messages: [{ role: "user", content: prompt }],
         tools: [{
-            type: isDeepSeek ? "web_search_20260209" : "web_search_20250305",
+            type: "web_search_20260209",
             name: "web_search",
-            max_uses: isDeepSeek ? 8 : 10,
+            max_uses: 10,
+            // Keep direct search compatible with models without programmatic tool calling.
+            allowed_callers: ["direct"],
         }],
         stream: true,
     };

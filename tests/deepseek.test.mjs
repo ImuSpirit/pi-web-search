@@ -42,8 +42,10 @@ test('DeepSeek search sends native tool and exposes streaming results and citati
     const request = JSON.parse(init.body);
     assert.equal(request.model, model.id);
     assert.equal(request.stream, true);
-    assert.deepEqual(request.tools, [{ type: 'web_search_20260209', name: 'web_search', max_uses: 8 }]);
+    assert.deepEqual(request.tools, [{ type: 'web_search_20260209', name: 'web_search', max_uses: 10, allowed_callers: ['direct'] }]);
     assert.equal(request.messages[0].content, 'Search DeepSeek docs');
+    assert.equal(request.system, undefined);
+    assert.equal(init.signal, controller.signal);
     assert.equal(init.signal.aborted, false);
     return answer();
   });
